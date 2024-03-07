@@ -1,4 +1,63 @@
 # 20220817-1
+## Особенность задачи: 
+1. **В поле одной сущности находится другая сущность.**
+   
+   Решение - если список сущностей нужен только при чтении другой сущности, то создаем Map<id, Entity> как ниже.
+   
+   Если нужен далее, то создаем метод на создание List, а потом с помощью `list.stream().collect(Collectors.toMap(Entity::getId, Function.identity()));` создаем Map<id, Entity>
+2. **В csv есть поле в виде массива id-шников другой сущности.**
+
+   Решение - передаем строку с id, с Map<id, Entity>, делаем substring строки, сплитим через "," , делаем trim, и применяем getOrDefault
+
+   ```java
+   private List<Product> getProductsByIds(String productsString, Map<Integer, Product> productMap) {
+        productsString = productsString.substring(1, productsString.length() - 1);
+        return Arrays.stream(productsString.split(","))
+                .map(String::trim)
+                .map(Integer::parseInt)
+                .map(id -> productMap.getOrDefault(id, null))
+                .toList();
+    }
+   ```
+3. **По какому-то признаку нужно объединить записи и найти сумму, количество и т.д.**
+  
+      Решение - группировка по этому общему признаку. Получаем Map<признак, List<Entity>>. Далее в записи результата для каждого элемента мапы делаем действие
+
+      ```java
+      public Map<String, List<Order>> groupOrdersByMonth(List<Order> orders) {
+        LocalDateTime dateFrom = getDateFrom();
+        return orders.stream()
+                .filter(order -> order.getDateCreated().isAfter(dateFrom))
+                .collect(Collectors.groupingBy(order ->
+                        order.getDateCreated().format(DateTimeFormatter.ofPattern("MM.yyyy"))));
+        }
+
+         monthToOrders
+                    .forEach((date, orders) -> {
+
+                        long totalItems = orders.stream()
+                                .map(Order::getProducts)
+                                .count();
+
+                        long totalCost = orders.stream()
+                                .flatMap(order -> order.getProducts().stream())
+                                .mapToInt(Product::cost)
+                                .sum();
+
+                        String result = new StringBuilder()
+                                .append(date).append(SEPARATOR)
+                                .append(totalItems).append(SEPARATOR)
+                                .append(totalCost).toString();
+
+                        try {
+                            bw.write(result);
+                            bw.newLine();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+   ```
+
 
 Задачи экзамена по Java 17/08/2022 - экзаменуемый 1
 
